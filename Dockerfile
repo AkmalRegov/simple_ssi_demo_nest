@@ -26,12 +26,13 @@ RUN apt-get install -y --no-install-recommends yarn
 
 LABEL maintainer="m.akmal@regovtech.com"
 WORKDIR /app
-COPY tsconfig*.json ./
-COPY package*.json ./
-COPY nest-cli.json ./
-COPY README.md ./
-COPY src/ src/
-COPY test/ test/
+# COPY tsconfig*.json ./
+# COPY package*.json ./
+# COPY nest-cli.json ./
+# COPY README.md ./
+# COPY src/ src/
+# COPY test/ test/
+COPY . ./
 RUN yarn install
 RUN yarn build
 CMD ["yarn", "start:dev"]
