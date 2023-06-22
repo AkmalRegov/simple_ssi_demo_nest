@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  app:
+    # for building dockerfile only, if not using docker buildx build
+    # for local use
+    build: .
+    # uncomment this if want to use docker image instead
+    # image: akmalregov/simple_ssi_demo_nest-app:latest
+    ports:
+      - 3000:3000
