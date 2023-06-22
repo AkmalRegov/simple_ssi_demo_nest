@@ -1,6 +1,7 @@
 # web3-ssi-rnd-one
 
 An app that makes use of ready-made mobile wallets and interacts with custom backend.
+Its primarily built and designed around the concept of self-sovereign identity where verifiable credential holders fully control the privacy and sharing of the credential once received from issuers and verifiers accept credentials issued based on trust towards the issuers.
 
 ## Goals
 
@@ -15,7 +16,7 @@ This app aims to accomplish:
 Mobile wallets used are:
 
 1. Lissi ID wallet by Neosfer GmbH (https://www.lissi.id/for-users)
-2. Orbit Edge Wallet by Northen Block (https://northernblock.io/orbit-edge-wallet/)
+2. Orbit Edge Wallet by Northern Block (https://northernblock.io/orbit-edge-wallet/)
 
 Tech stack:
 
