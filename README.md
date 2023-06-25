@@ -24,3 +24,8 @@ Tech stack:
 - Aries Framework Javascript (AFJ)
 
 _Note_: The custom backend wallet agent uses the Aries Askar package for wallet and storage implementation since the Indy SDK package will be deprecated in the near future. (https://aries.js.org/guides/0.4/getting-started/set-up#adding-a-wallet-and-storage-implementation)
+
+## Important Notes
+
+- To start ngrok on static domain (Make sure to use the account)
+  $ ngrok http --hostname=akmalregov.ngrok.dev 3333

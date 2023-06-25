@@ -6,6 +6,11 @@ class sendMessageDto {
   message: string;
 }
 
+class offerCredentialDto {
+  connectionId: string;
+  credentialDefinitionId: string;
+}
+
 @Controller('agent')
 export class AgentController {
   constructor(private agentService: AgentService) {}
@@ -28,5 +33,14 @@ export class AgentController {
   @Post('sendMessage')
   sendMessage(@Body() dto: sendMessageDto) {
     return this.agentService.sendMessage(dto.connectionId, dto.message);
+  }
+
+  @Post('offerCredential')
+  offerCredential(@Body() dto: offerCredentialDto) {
+    this.agentService.setupCredentialOffered();
+    return this.agentService.serviceOfferCredential(
+      dto.connectionId,
+      dto.credentialDefinitionId,
+    );
   }
 }

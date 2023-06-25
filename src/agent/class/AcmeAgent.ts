@@ -1,19 +1,24 @@
 import type {
   BasicMessageStateChangedEvent,
   ConnectionStateChangedEvent,
+  CredentialStateChangedEvent,
   InitConfig,
   OutOfBandRecord,
 } from '@aries-framework/core';
 import {
   Agent,
+  AutoAcceptCredential,
   BasicMessageEventTypes,
   BasicMessageRole,
   ConnectionEventTypes,
   ConnectionsModule,
+  ConsoleLogger,
+  CredentialEventTypes,
   CredentialsModule,
   DidExchangeState,
   DidsModule,
   KeyType,
+  LogLevel,
   TypedArrayEncoder,
   V2CredentialProtocol,
 } from '@aries-framework/core';
@@ -36,13 +41,14 @@ import {
   AnonCredsApi,
   AnonCredsCredentialFormatService,
   AnonCredsModule,
-  AnonCredsSchemaRecord,
   LegacyIndyCredentialFormatService,
 } from '@aries-framework/anoncreds';
 import { AnonCredsRsModule } from '@aries-framework/anoncreds-rs';
 import { anoncreds } from '@hyperledger/anoncreds-nodejs';
 
 export class AcmeAgent extends Agent {
+  private unqualifiedIndyDid = `9VdxM6gJS8tyDzeHxKBd9e`; // will be returned after registering seed on bcovrin
+  private indyDid = `did:indy:bcovrin:test:${this.unqualifiedIndyDid}`;
   constructor() {
     const config: InitConfig = {
       label: 'demo-agent-acme',
@@ -50,7 +56,8 @@ export class AcmeAgent extends Agent {
         id: 'mainAcme',
         key: 'demoagentacme0000000000000000000',
       },
-      endpoints: ['http://localhost:3333'],
+      endpoints: ['https://akmalregov.ngrok.dev'],
+      logger: new ConsoleLogger(LogLevel.info),
     };
 
     super({
@@ -115,32 +122,44 @@ export class AcmeAgent extends Agent {
         );
       });
   }
-  offerCredential = async () => {
-    const anonCredsCredentialExchangeRecord =
-      this.modules.credentials.offerCredential({
-        protocolVersion: 'v2',
-        connectionId: '<connection id>',
-        credentialFormats: {
-          anoncreds: {
-            credentialDefinitionId: '<credential definition id>',
-            attributes: [
-              { name: 'name', value: 'Jane Doe' },
-              { name: 'age', value: '23' },
-            ],
-          },
+  agentOfferCredential = async (
+    connectionId: string,
+    credentialDefinitionId: string,
+  ) => {
+    const credentialOffer = this.credentials.offerCredential({
+      protocolVersion: <never>'v2',
+      comment: 'Identity Card',
+      connectionId,
+      autoAcceptCredential: AutoAcceptCredential.Always,
+      credentialFormats: {
+        anoncreds: {
+          credentialDefinitionId,
+          attributes: [
+            { name: 'name', value: 'Jane Doe' },
+            { name: 'age', value: '23' },
+          ],
         },
-      });
-    return anonCredsCredentialExchangeRecord;
+        indy: {
+          credentialDefinitionId,
+          attributes: [
+            { name: 'name', value: 'Jane Doe' },
+            { name: 'age', value: '23' },
+          ],
+        },
+      },
+    });
+    return await credentialOffer;
   };
   registerCredentialDefinition = async (schemaResult: any) => {
     if (schemaResult.type === 'AnonCredsSchemaRecord') return;
-    const unqualifiedIndyDid = `9VdxM6gJS8tyDzeHxKBd9e`; // will be returned after registering seed on bcovrin
-    const indyDid = `did:indy:bcovrin:test:${unqualifiedIndyDid}`;
+    // const unqualifiedIndyDid = `9VdxM6gJS8tyDzeHxKBd9e`; // will be returned after registering seed on bcovrin
+    // const indyDid = `did:indy:bcovrin:test:${unqualifiedIndyDid}`;
+    const anonCredsApi = this.modules.anoncreds as AnonCredsApi;
     const credentialDefinitionResult =
-      await this.modules.anoncreds.registerCredentialDefinition({
+      await anonCredsApi.registerCredentialDefinition({
         credentialDefinition: {
           tag: 'default',
-          issuerId: indyDid,
+          issuerId: this.indyDid,
           schemaId: schemaResult.schemaState.schemaId,
         },
         options: {},
@@ -153,14 +172,19 @@ export class AcmeAgent extends Agent {
         `Error creating credential definition: ${credentialDefinitionResult.credentialDefinitionState.reason}`,
       );
     }
+    console.log(
+      'CredentialDefinitionId is: ',
+      credentialDefinitionResult.credentialDefinitionState
+        .credentialDefinitionId,
+    );
   };
   registerSchema = async () => {
-    const unqualifiedIndyDid = `9VdxM6gJS8tyDzeHxKBd9e`; // will be returned after registering seed on bcovrin
-    const indyDid = `did:indy:bcovrin:test:${unqualifiedIndyDid}`;
+    // const unqualifiedIndyDid = `9VdxM6gJS8tyDzeHxKBd9e`; // will be returned after registering seed on bcovrin
+    // const indyDid = `did:indy:bcovrin:test:${unqualifiedIndyDid}`;
     const anonCredsApi = this.modules.anoncreds as AnonCredsApi;
     const schema = {
       attrNames: ['name', 'age'],
-      issuerId: indyDid,
+      issuerId: this.indyDid,
       name: 'sth',
       version: '1.0.0',
     };
@@ -169,7 +193,17 @@ export class AcmeAgent extends Agent {
     });
     if (checkSchemaExist) {
       console.log('schema already exists!');
-      console.log('schema is: \n', checkSchemaExist[0]);
+      setTimeout(() => console.log('schema is: \n', checkSchemaExist[0]), 2000);
+      setTimeout(async () => {
+        const credentialDefinitionId =
+          await anonCredsApi.getCreatedCredentialDefinitions({
+            schemaId: checkSchemaExist[0].schemaId,
+          });
+        console.log(
+          'credentialDefinitionId is: \n',
+          credentialDefinitionId[0].credentialDefinitionId,
+        );
+      }, 3000);
       return { schema: checkSchemaExist[0], type: 'AnonCredsSchemaRecord' };
     }
     const schemaResult = await anonCredsApi.registerSchema({
@@ -187,11 +221,11 @@ export class AcmeAgent extends Agent {
     const seed = TypedArrayEncoder.fromString(
       `akmalregov0000000000000000000000`,
     ); // What you input on bcovrin. Should be kept secure in production!
-    const unqualifiedIndyDid = `9VdxM6gJS8tyDzeHxKBd9e`; // will be returned after registering seed on bcovrin
-    const indyDid = `did:indy:bcovrin:test:${unqualifiedIndyDid}`;
+    // const unqualifiedIndyDid = `9VdxM6gJS8tyDzeHxKBd9e`; // will be returned after registering seed on bcovrin
+    // const indyDid = `did:indy:bcovrin:test:${unqualifiedIndyDid}`;
 
     await this.dids.import({
-      did: indyDid,
+      did: this.indyDid,
       overwrite: true,
       privateKeys: [
         {
@@ -210,6 +244,9 @@ export class AcmeAgent extends Agent {
       ({ payload }) => {
         if (!outOfBandRecord) return;
         if (payload.connectionRecord.outOfBandId !== outOfBandRecord.id) return;
+        console.log(payload.connectionRecord.state);
+        console.log(payload.connectionRecord);
+        console.log('\n');
         if (payload.connectionRecord.state === DidExchangeState.Completed) {
           // the connection is now ready for usage in other protocols!
           console.log(
@@ -245,6 +282,14 @@ export class AcmeAgent extends Agent {
         if (payload.basicMessageRecord.role === BasicMessageRole.Receiver) {
           console.log(`Acme received a message: ${payload.message.content}`);
         }
+      },
+    );
+  };
+  setupCredentialOffered = () => {
+    this.events.on<CredentialStateChangedEvent>(
+      CredentialEventTypes.CredentialStateChanged,
+      async ({ payload }) => {
+        console.log(payload.credentialRecord);
       },
     );
   };
