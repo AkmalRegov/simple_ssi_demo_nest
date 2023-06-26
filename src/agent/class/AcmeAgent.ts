@@ -188,23 +188,40 @@ export class AcmeAgent extends Agent {
       name: 'sth',
       version: '1.0.0',
     };
-    var checkSchemaExist = await anonCredsApi.getCreatedSchemas({
-      schemaName: schema.name,
-    });
+    // var checkSchemaExist = await anonCredsApi.getCreatedSchemas({
+    //   schemaName: schema.name,
+    // });
+    // if (checkSchemaExist) {
+    //   console.log('schema already exists!');
+    //   setTimeout(() => console.log('schema is: \n', checkSchemaExist[0]), 2000);
+    //   setTimeout(async () => {
+    //     const credentialDefinitionId =
+    //       await anonCredsApi.getCreatedCredentialDefinitions({
+    //         schemaId: checkSchemaExist[0].schemaId,
+    //       });
+    //     console.log(
+    //       'credentialDefinitionId is: \n',
+    //       credentialDefinitionId[0].credentialDefinitionId,
+    //     );
+    //   }, 3000);
+    //   return { schema: checkSchemaExist, type: 'AnonCredsSchemaRecord' };
+    // }
+    var checkSchemaExist = await anonCredsApi.getSchema(
+      `did:indy:bcovrin:test:9VdxM6gJS8tyDzeHxKBd9e/anoncreds/v0/SCHEMA/sth/1.0.0`,
+    );
     if (checkSchemaExist) {
       console.log('schema already exists!');
-      setTimeout(() => console.log('schema is: \n', checkSchemaExist[0]), 2000);
+      setTimeout(() => console.log('schema is: \n', checkSchemaExist), 2000);
       setTimeout(async () => {
-        const credentialDefinitionId =
-          await anonCredsApi.getCreatedCredentialDefinitions({
-            schemaId: checkSchemaExist[0].schemaId,
-          });
+        const credentialDefinition = await anonCredsApi.getCredentialDefinition(
+          `did:indy:bcovrin:test:9VdxM6gJS8tyDzeHxKBd9e/anoncreds/v0/CLAIM_DEF/861345/default`,
+        );
         console.log(
           'credentialDefinitionId is: \n',
-          credentialDefinitionId[0].credentialDefinitionId,
+          credentialDefinition.credentialDefinitionId,
         );
       }, 3000);
-      return { schema: checkSchemaExist[0], type: 'AnonCredsSchemaRecord' };
+      return { schema: checkSchemaExist, type: 'AnonCredsSchemaRecord' };
     }
     const schemaResult = await anonCredsApi.registerSchema({
       schema,
