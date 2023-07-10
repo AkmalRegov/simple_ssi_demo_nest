@@ -51,8 +51,12 @@ Hence for troubleshooting purposes:
 ### Ngrok usage
 Ngrok is used to expose the localhost of the issuer to the recipient agent. Make sure it is up and running.
 - To start ngrok on static domain (Make sure to use your own ngrok account and domain)
-  ```shell ngrok http --hostname=akmalregov.ngrok.dev 3333 (Mac/Linux) ```
-  ```shell ngrok http --domain=akmalregov.ngrok.dev 3333 (Windows) ```
+  ``` shell 
+  ngrok http --hostname=akmalregov.ngrok.dev 3333 (Mac/Linux) 
+  ```
+  ```shell 
+  ngrok http --domain=akmalregov.ngrok.dev 3333 (Windows) 
+  ```
 
 ### Connection establishment and Connection ID
 1. By making a HTTP get request that creates the agent invitation, it should also generate a QR code within the root project directory.
