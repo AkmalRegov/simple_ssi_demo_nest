@@ -49,7 +49,7 @@ Hence for troubleshooting purposes:
     - checkSchema_NotLiteralValue is a method where you want to check if the schema is registered after your first run of the registration. **This method invocation should be commented out IF you are doing the first time registration for the schema and credential definition.**
 
 ### Ngrok usage
-Ngrok is used to expose the localhost of the issuer to the recipient agent. Make sure it is up and running.
+Ngrok is used to expose the localhost of the issuer to the recipient agent (if recipient is not on the same local machine). Make sure it is up and running.
 - To start ngrok on static domain (Make sure to use your own ngrok account and domain)
   ``` shell 
   $ ngrok http --hostname=akmalregov.ngrok.dev 3333 (Mac/Linux) 
