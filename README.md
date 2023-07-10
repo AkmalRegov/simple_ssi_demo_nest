@@ -52,10 +52,10 @@ Hence for troubleshooting purposes:
 Ngrok is used to expose the localhost of the issuer to the recipient agent. Make sure it is up and running.
 - To start ngrok on static domain (Make sure to use your own ngrok account and domain)
   ``` shell 
-  ngrok http --hostname=akmalregov.ngrok.dev 3333 (Mac/Linux) 
+  $ ngrok http --hostname=akmalregov.ngrok.dev 3333 (Mac/Linux) 
   ```
   ```shell 
-  ngrok http --domain=akmalregov.ngrok.dev 3333 (Windows) 
+  $ ngrok http --domain=akmalregov.ngrok.dev 3333 (Windows) 
   ```
 
 ### Connection establishment and Connection ID
