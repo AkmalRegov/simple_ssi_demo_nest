@@ -34,19 +34,19 @@ _NOTE_: The custom backend wallet agent uses the Aries Askar package for wallet 
 The registration and usage of the Schema and Credential Definition is quite tricky mainly because of these reasons stated in [AFJ 0.3.0 Side Notes](https://aries.js.org/guides/0.3/tutorials/issue-a-credential#side-notes), which are:
 1. When attempting to register a credential definition that already exists on the ledger but is not in your wallet, AFJ will throw an error (as opposed to returning the credential definition from the ledger in prior versions)
 2. Attempting to register a new credential definition that is already in the wallet in AFJ will return the stored definition without attempting to register it on the ledger.
-> These choices are intentional. In case 1, it is assumed that this workflow is a mistake. In case 2, it is assumed that having registered the credential on the ledger is implied.
+> "These choices are intentional. In case 1, it is assumed that this workflow is a mistake. In case 2, it is assumed that having registered the credential on the ledger is implied."
 
 Hence for troubleshooting purposes:
 1. If using Docker and local changes are not persisted (through shutdown of docker app or PC), you **MUST** register the Schema and Credential Definition similar to how you would do it for the first time.
- - You _cannot reuse_ any registered Schema AND/OR Credential Definition that are not created, stored and persisted locally in your machine AND/OR container. Hence, the problem with using Docker for this.
+  - You _cannot reuse_ any registered Schema AND/OR Credential Definition that are not created, stored and persisted locally in your machine AND/OR container. Hence, the problem with using Docker for this.
 2. If you get an error when registering the Schema, usually it is because the Schema has already been registered in the ledger (but maybe not locally stored in your machine AND/OR container.)
 3. Make sure **to not create more than one Credential Definition in your machine AND/OR container**, else there would a problem when issuing credentials!
- - If you did create more than one credential definition, registering a new schema and ONLY 1 new credential definition for that would solve the problem.
+  - If you did create more than one credential definition, registering a new schema and ONLY 1 new credential definition for that would solve the problem.
 4. For now, there is no guaranteed way to check if Schema and Credential Definition have been registered within your local machine AND/OR container, without through trial and error testing.
- - AnonCredsApi methods to check registration of Schema and Credential Definition exist but that searches only within your local machine AND/OR container, hence if local cache and changes are not persisted, you need to register new ones.
- - 2 methods in AcmeAgent.ts to check registered Schema are checkSchema_LiteralValue and checkSchema_NotLiteralValue.
-  - checkSchema_LiteralValue is a method where you want to check if your previous registered schema (registered elsewhere on other machine AND/OR container) exist within the ledger (but it does not check within your local machine AND/OR container).
-  - checkSchema_NotLiteralValue is a method where you want to check if the schema is registered after your first run of the registration. **This method invocation should be commented out IF you are doing the first time registration for the schema and credential definition.**
+  - AnonCredsApi methods to check registration of Schema and Credential Definition exist but that searches only within your local machine AND/OR container, hence if local cache and changes are not persisted, you need to register new ones.
+  - 2 methods in AcmeAgent.ts to check registered Schema are checkSchema_LiteralValue and checkSchema_NotLiteralValue.
+    - checkSchema_LiteralValue is a method where you want to check if your previous registered schema (registered elsewhere on other machine AND/OR container) exist within the ledger (but it does not check within your local machine AND/OR container).
+    - checkSchema_NotLiteralValue is a method where you want to check if the schema is registered after your first run of the registration. **This method invocation should be commented out IF you are doing the first time registration for the schema and credential definition.**
 
 ### Ngrok usage
 Ngrok is used to expose the localhost of the issuer to the recipient agent. Make sure it is up and running.
