@@ -41,7 +41,7 @@ The registration and usage of the Schema and Credential Definition is quite tric
 Hence for troubleshooting purposes:
 
 1. IF you are sure that you have registered a Schema on a different local development machine and the specified ledger, then you can use the method checkSchema_LiteralValue, input your schema id at anonCredsApi.getSchema() function, then it will give the details of the Schema.
-  - The checkSchema_LiteralValue also checks if your local development machine and local AnonCredsApi have registered a Credential Definition based on the specific Schema. It will also prevent from duplication Credential Definitions because by default, AnonCredsApi does not restrict that.
+  - The checkSchema_LiteralValue also checks if your local development machine and local AnonCredsApi have registered a Credential Definition based on the specific Schema. It will also prevent from duplication of Credential Definitions because by default, AnonCredsApi does not restrict that.
 2. IF you want to register a new Schema (and of course a new Credential Definition), then you **MUST** comment out the checkSchema_LiteralValue invocation at registerSchema method.
 3. Apparently, AnonCredsApi does not restrict the duplication of Credential Definitions. Problem is that when issuing credentials, if duplicate Credential Definitions exist, it will throw an error because of that.
 
