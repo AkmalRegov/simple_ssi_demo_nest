@@ -42,7 +42,6 @@ import {
   AnonCredsCredentialFormatService,
   AnonCredsModule,
   AnonCredsSchema,
-  AnonCredsSchemaRecord,
   GetSchemaReturn,
   LegacyIndyCredentialFormatService,
   RegisterSchemaReturn,
@@ -56,11 +55,10 @@ import { BCOVRIN_GENESIS_TRANSACTIONS } from 'src/utils';
 
 interface checkRegisteredSchema_Return {
   schema:
-    | AnonCredsSchemaRecord[]
     | GetSchemaReturn
     | RegisterSchemaReturn
     | string;
-  type: 'AnonCredsSchemaRecord' | 'GetSchemaReturn' | string;
+  type: 'GetSchemaReturn' | string;
   flag?: boolean;
 }
 
@@ -68,6 +66,7 @@ export class AcmeAgent extends Agent {
   // What you input on bcovrin. Should be kept secure in production!
   private unqualifiedIndyDid = `9VdxM6gJS8tyDzeHxKBd9e`; // will be returned after registering seed on bcovrin
   private indyDid = `did:indy:bcovrin:test:${this.unqualifiedIndyDid}`;
+  private schemaID = '';
 
   constructor() {
     const config: InitConfig = {
@@ -134,7 +133,7 @@ export class AcmeAgent extends Agent {
       .then(this.initialDIDSetup)
       .then(async () => {
         const schemaResult = await this.registerSchema();
-        this.registerCredentialDefinition({ schemaResult: schemaResult });
+        this.registerCredentialDefinition(schemaResult);
       })
       .catch((e) => {
         console.error(
@@ -179,24 +178,17 @@ export class AcmeAgent extends Agent {
     });
     return await credentialOffer;
   };
-  registerCredentialDefinition = async (args: {
-    schemaResult?: checkRegisteredSchema_Return;
-    schemaId?: string;
-  }) => {
-    if (!args.schemaResult && !args.schemaId) return;
-    if (
-      (args.schemaResult &&
-        args.schemaResult.type === 'AnonCredsSchemaRecord') ||
-      args.schemaResult.type === 'GetSchemaReturn'
-    )
-      return;
+  registerCredentialDefinition = async (args: checkRegisteredSchema_Return | string) => {
+    if (typeof args !== "object" && typeof args !== "string") return;
+    if (typeof args === "object" && args.type === "GetSchemaReturn") return;
+    // console.log("args is: ", args);
     const anonCredsApi = this.modules.anoncreds as AnonCredsApi;
     var schemaId: string;
-    if (!args.schemaId) {
-      schemaId = (args.schemaResult.schema as RegisterSchemaReturn).schemaState
+    if (typeof args !== "string") {
+      schemaId = (args.schema as RegisterSchemaReturn).schemaState
         .schemaId;
-    } else if (!args.schemaResult) {
-      schemaId = args.schemaId;
+    } else if (typeof args !== "object") {
+      schemaId = args;
     }
     const credentialDefinitionId =
       await anonCredsApi.getCreatedCredentialDefinitions({
@@ -244,64 +236,25 @@ export class AcmeAgent extends Agent {
     );
     if (checkSchemaExist) {
       console.log('schema already exists!');
-      setTimeout(() => console.log('schema is: \n', checkSchemaExist), 2000);
-      setTimeout(async () => {
-        const credentialDefinition = await anonCredsApi.getCredentialDefinition(
-          `did:indy:bcovrin:test:9VdxM6gJS8tyDzeHxKBd9e/anoncreds/v0/CLAIM_DEF/861345/default`,
-        );
-        console.log(
-          'credentialDefinitionId is: \n',
-          credentialDefinition.credentialDefinitionId,
-        );
-        // const credentialDefinitionId =
-        //   await anonCredsApi.getCreatedCredentialDefinitions({
-        //     schemaId: checkSchemaExist.schemaId,
-        //   });
-        // if (credentialDefinitionId.length == 0) {
-        //   console.log(
-        //     'looks like credential definition is not registered with this local AnonCredsApi...',
-        //   );
-        //   console.log('registering the credential definition...\n');
-        //   return this.registerCredentialDefinition({
-        //     schemaId: checkSchemaExist.schemaId,
-        //   });
-        // }
-        // console.log(
-        //   'credentialDefinitionId is: \n',
-        //   credentialDefinitionId[0].credentialDefinitionId,
-        // );
-      }, 3000);
-      return {
-        schema: checkSchemaExist,
-        type: 'AnonCredsSchemaRecord',
-        flag: true,
-      };
-    }
-    return { schema: 'none', type: 'none', flag: false };
-  };
-  checkSchema_NotLiteralValue = async (
-    anonCredsApi: AnonCredsApi,
-    schema: AnonCredsSchema,
-  ) => {
-    var checkSchemaExist = await anonCredsApi.getCreatedSchemas({
-      schemaName: schema.name,
-    });
-    if (checkSchemaExist.length > 0) {
-      console.log('schema already exists!');
-      setTimeout(() => console.log('schema is: \n', checkSchemaExist[0]), 2000);
-      setTimeout(async () => {
         const credentialDefinitionId =
           await anonCredsApi.getCreatedCredentialDefinitions({
-            schemaId: checkSchemaExist[0].schemaId,
+            schemaId: checkSchemaExist.schemaId,
           });
-        console.log(
+          if(credentialDefinitionId.length == 0) {
+            console.log("credential definition has not been registered on this machine!");
+            console.log("assigning schemaID string to AcmeAgent object...");
+            this.schemaID = checkSchemaExist.schemaId;
+            console.log("assigned schemaID for AcmeAgent is: ", this.schemaID);
+          }
+        else {
+          console.log("credential definition has already exist!");
+          console.log(
           'credentialDefinitionId is: \n',
           credentialDefinitionId[0].credentialDefinitionId,
-        );
-      }, 3000);
+        )};
       return {
         schema: checkSchemaExist,
-        type: 'AnonCredsSchemaRecord',
+        type: 'GetSchemaReturn',
         flag: true,
       };
     }
@@ -322,15 +275,14 @@ export class AcmeAgent extends Agent {
       flag: false,
     };
     checkSchema_flag = await this.checkSchema_LiteralValue(anonCredsApi);
-    // checkSchema_flag = await this.checkSchema_NotLiteralValue(
-    //   anonCredsApi,
-    //   schema,
-    // );
-    if (checkSchema_flag['flag'])
+    if (checkSchema_flag['flag'] && this.schemaID === "")
       return {
         schema: checkSchema_flag['schema'],
         type: checkSchema_flag['type'],
       };
+    else if (this.schemaID !== "") {
+      return this.schemaID;
+    }
 
     const schemaResult = await anonCredsApi.registerSchema({
       schema,
