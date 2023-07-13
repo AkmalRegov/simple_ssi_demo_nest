@@ -8,3 +8,29 @@ services:
     # image: akmalregov/simple_ssi_demo_nest-app:latest
     ports:
       - 3000:3000
+    networks:
+      - akmalregov #Enables to connect with appName:portNumber if same network
+  issuer-postgres:
+    image: postgres:13
+    ports:
+      - 5434:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_ADMIN: postgres
+      POSTGRES_ADMIN_PASSWORD: postgres
+    networks:
+      - akmalregov
+  holder-postgres:
+    image: postgres:13
+    ports:
+      - 5435:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_ADMIN: postgres
+      POSTGRES_ADMIN_PASSWORD: postgres
+    networks:
+      - akmalregov
+networks:
+  akmalregov:

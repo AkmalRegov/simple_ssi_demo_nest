@@ -69,11 +69,27 @@ export class AcmeAgent extends Agent {
   private schemaID = '';
 
   constructor() {
+    const storageConfig = {
+      type: 'postgres',
+      config: {
+        //for docker usage
+        host: 'issuer-postgres:5432',
+        //for local usage
+        // host: 'localhost:5432',
+      },
+      credentials: {
+        account: 'postgres',
+        password: 'postgres',
+        admin_account: 'postgres',
+        admin_password: 'postgres',
+      },
+    }
     const config: InitConfig = {
       label: 'demo-agent-acme',
       walletConfig: {
         id: 'mainAcme',
         key: 'demoagentacme0000000000000000000',
+        storage: storageConfig
       },
       endpoints: ['https://akmalregov.ngrok.dev'],
       logger: new ConsoleLogger(LogLevel.info),
@@ -129,6 +145,7 @@ export class AcmeAgent extends Agent {
     this.initialize()
       .then(() => {
         console.log('Acme Agent initialized!');
+        console.log("Acme Agent wallet storage database is: ", this.agentConfig.walletConfig.storage);
       })
       .then(this.initialDIDSetup)
       .then(async () => {

@@ -39,6 +39,7 @@ export class AgentService extends AcmeAgent {
       },
     );
     return { outOfBandRecordOld, invitationUrl };
+    // return res;
   }
   async sendMessage(connectionId: string, message: string) {
     return this.basicMessages.sendMessage(connectionId, message);
