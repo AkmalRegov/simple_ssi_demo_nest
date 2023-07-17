@@ -1,20 +1,20 @@
 import { IsNotEmpty, IsObject, IsString } from 'class-validator';
 
 export class SchemaDto {
-  attrNames: Array<String>;
-  issuerId: String;
-  name: String;
-  version: String;
+  attrNames: string[];
+  issuerId: string;
+  name: string;
+  version: string;
   obj: {
-    name: String;
-    age: Number;
+    name: string;
+    age: number;
   };
 }
 
 export class NestedSchemaDto {
   @IsNotEmpty()
   @IsString()
-  name: String;
+  name: string;
 
   @IsNotEmpty()
   @IsObject()

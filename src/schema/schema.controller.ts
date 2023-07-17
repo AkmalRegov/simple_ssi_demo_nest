@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Post, UsePipes } from '@nestjs/common';
 import Joi from 'joi';
 import { NestedSchemaDto, SchemaDto } from './dto';
 import { JoiValidationPipe, ClassValidationPipe } from './pipe';
@@ -11,14 +11,14 @@ const createSchema = Joi.object<SchemaDto>({
   version: Joi.string()
     .regex(/^[0-9.]+/)
     .required(),
-  obj: Joi.object({
+  obj: Joi.object<SchemaDto['obj']>({
     name: Joi.string().required(),
     age: Joi.number().required(),
   })
+
     .required()
     .messages({
-      'object.base': `"obj" should be a Javascript Object`,
-      'object.schema': `"obj" must contain the property [name, age]`,
+      'object.base': `"obj" should be a Javascript Object and must contain the property [name: string, age: number]`,
     }),
 });
 
