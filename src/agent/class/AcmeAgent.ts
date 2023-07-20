@@ -4,10 +4,12 @@ import type {
   CredentialStateChangedEvent,
   InitConfig,
   OutOfBandRecord,
+  ProofStateChangedEvent,
 } from '@aries-framework/core';
 import {
   Agent,
   AutoAcceptCredential,
+  AutoAcceptProof,
   BasicMessageEventTypes,
   BasicMessageRole,
   ConnectionEventTypes,
@@ -19,8 +21,12 @@ import {
   DidsModule,
   KeyType,
   LogLevel,
+  ProofEventTypes,
+  ProofState,
+  ProofsModule,
   TypedArrayEncoder,
   V2CredentialProtocol,
+  V2ProofProtocol,
 } from '@aries-framework/core';
 import { agentDependencies } from '@aries-framework/node';
 import { AskarModule } from '@aries-framework/askar';
@@ -41,9 +47,11 @@ import {
   AnonCredsApi,
   AnonCredsCredentialFormatService,
   AnonCredsModule,
+  AnonCredsProofFormatService,
   AnonCredsSchema,
   GetSchemaReturn,
   LegacyIndyCredentialFormatService,
+  LegacyIndyProofFormatService,
   RegisterSchemaReturn,
   V1CredentialProtocol,
   getUnqualifiedCredentialDefinitionId,
@@ -55,9 +63,9 @@ import { BCOVRIN_GENESIS_TRANSACTIONS } from 'src/utils';
 
 interface checkRegisteredSchema_Return {
   schema:
-    | GetSchemaReturn
-    | RegisterSchemaReturn
-    | string;
+  | GetSchemaReturn
+  | RegisterSchemaReturn
+  | string;
   type: 'GetSchemaReturn' | string;
   flag?: boolean;
 }
@@ -135,6 +143,14 @@ export class AcmeAgent extends Agent {
             }),
           ],
         }),
+        proofs: new ProofsModule({
+          autoAcceptProofs: AutoAcceptProof.ContentApproved,
+          proofProtocols: [
+            new V2ProofProtocol({
+              proofFormats: [new AnonCredsProofFormatService(), new LegacyIndyProofFormatService()],
+            }),
+          ],
+        }),
         connections: new ConnectionsModule({ autoAcceptConnections: true }),
       },
       dependencies: agentDependencies,
@@ -151,12 +167,51 @@ export class AcmeAgent extends Agent {
       .then(async () => {
         const schemaResult = await this.registerSchema();
         this.registerCredentialDefinition(schemaResult);
+      }).then(async () => {
+        console.log("Acme agent listening for proof requests that they have sent...");
+        this.setupProofRequested();
       })
       .catch((e) => {
         console.error(
           `Something went wrong while setting up the Acme agent! Message: ${e}`,
         );
       });
+  }
+  agentRequestProof = async (
+    connectionId: string,
+    proofFormat: {
+      [name: string]: {
+        name: string,
+        version: string,
+        requested_attributes: {
+          [name: string]: {
+            name: string,
+            restrictions: {
+              cred_def_id: string
+            }[]
+          }
+        },
+        requested_predicates?: {
+          [name: string]: {
+            name: string,
+            p_type: string,
+            p_value: number,
+            restrictions: {
+              cred_def_id: string
+            }[]
+          }
+        }
+      }
+    }
+  ) => {
+    console.log("Requesting proof with the following formats:\n");
+    console.dir(proofFormat, { depth: null, colors: true });
+    const proofRequest = this.proofs.requestProof({
+      connectionId: connectionId,
+      protocolVersion: 'v2',
+      proofFormats: proofFormat
+    })
+    return await proofRequest;
   }
   agentOfferCredential = async (
     connectionId: string,
@@ -177,20 +232,20 @@ export class AcmeAgent extends Agent {
       connectionId,
       autoAcceptCredential: AutoAcceptCredential.Always,
       credentialFormats: {
-        // anoncreds: {
-        //   credentialDefinitionId,
-        //   attributes: [
-        //     { name: 'name', value: 'Jane Doe' },
-        //     { name: 'age', value: '23' },
-        //   ],
-        // },
-        indy: {
-          credentialDefinitionId: unqualifiedCredentialDefinitionId,
+        anoncreds: {
+          credentialDefinitionId,
           attributes: [
             { name: 'name', value: 'Jane Doe' },
             { name: 'age', value: '23' },
           ],
         },
+        // indy: {
+        //   credentialDefinitionId: unqualifiedCredentialDefinitionId,
+        //   attributes: [
+        //     { name: 'name', value: 'Jane Doe' },
+        //     { name: 'age', value: '23' },
+        //   ],
+        // },
       },
     });
     return await credentialOffer;
@@ -198,7 +253,6 @@ export class AcmeAgent extends Agent {
   registerCredentialDefinition = async (args: checkRegisteredSchema_Return | string) => {
     if (typeof args !== "object" && typeof args !== "string") return;
     if (typeof args === "object" && args.type === "GetSchemaReturn") return;
-    // console.log("args is: ", args);
     const anonCredsApi = this.modules.anoncreds as AnonCredsApi;
     var schemaId: string;
     if (typeof args !== "string") {
@@ -253,22 +307,23 @@ export class AcmeAgent extends Agent {
     );
     if (checkSchemaExist) {
       console.log('schema already exists!');
-        const credentialDefinitionId =
-          await anonCredsApi.getCreatedCredentialDefinitions({
-            schemaId: checkSchemaExist.schemaId,
-          });
-          if(credentialDefinitionId.length == 0) {
-            console.log("credential definition has not been registered on this machine!");
-            console.log("assigning schemaID string to AcmeAgent object...");
-            this.schemaID = checkSchemaExist.schemaId;
-            console.log("assigned schemaID for AcmeAgent is: ", this.schemaID);
-          }
-        else {
-          console.log("credential definition has already exist!");
-          console.log(
+      const credentialDefinitionId =
+        await anonCredsApi.getCreatedCredentialDefinitions({
+          schemaId: checkSchemaExist.schemaId,
+        });
+      if (credentialDefinitionId.length == 0) {
+        console.log("credential definition has not been registered on this machine!");
+        console.log("assigning schemaID string to AcmeAgent object...");
+        this.schemaID = checkSchemaExist.schemaId;
+        console.log("assigned schemaID for AcmeAgent is: ", this.schemaID);
+      }
+      else {
+        console.log("credential definition has already exist!");
+        console.log(
           'credentialDefinitionId is: \n',
           credentialDefinitionId[0].credentialDefinitionId,
-        )};
+        )
+      };
       return {
         schema: checkSchemaExist,
         type: 'GetSchemaReturn',
@@ -338,6 +393,7 @@ export class AcmeAgent extends Agent {
     this.events.on<ConnectionStateChangedEvent>(
       ConnectionEventTypes.ConnectionStateChanged,
       ({ payload }) => {
+        console.log("connection payload id is: ", payload.connectionRecord.id);
         if (!outOfBandRecord) return;
         if (payload.connectionRecord.outOfBandId !== outOfBandRecord.id) return;
         console.log(payload.connectionRecord.state);
@@ -389,4 +445,17 @@ export class AcmeAgent extends Agent {
       },
     );
   };
+  setupProofRequested = () => {
+    this.events.on<ProofStateChangedEvent>(
+      ProofEventTypes.ProofStateChanged,
+      async ({ payload }) => {
+        if (payload.proofRecord.state === ProofState.PresentationReceived) {
+          console.log("Presentation has been received. Verifying it...");
+        }
+        if (payload.proofRecord.state === ProofState.Done) {
+          console.log("Presentation proof of the credential has been done! Success!");
+        }
+      }
+    )
+  }
 }

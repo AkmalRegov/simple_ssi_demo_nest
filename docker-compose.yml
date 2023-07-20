@@ -8,6 +8,7 @@ services:
     # image: akmalregov/simple_ssi_demo_nest-app:latest
     ports:
       - 3000:3000
+      - 3333:3333
     networks:
       - akmalregov #Enables to connect with appName:portNumber if same network
   issuer-postgres:

@@ -1,4 +1,4 @@
-import { AnonCredsModule, LegacyIndyCredentialFormatService, AnonCredsCredentialFormatService, AnonCredsApi } from '@aries-framework/anoncreds';
+import { AnonCredsModule, LegacyIndyCredentialFormatService, AnonCredsCredentialFormatService, AnonCredsApi, AnonCredsProofFormatService } from '@aries-framework/anoncreds';
 import { AnonCredsRsModule } from '@aries-framework/anoncreds-rs';
 import { AskarModule } from '@aries-framework/askar';
 import {
@@ -20,6 +20,12 @@ import {
   CredentialEventTypes,
   CredentialState,
   CredentialStateChangedEvent,
+  AutoAcceptProof,
+  ProofsModule,
+  V2ProofProtocol,
+  ProofStateChangedEvent,
+  ProofEventTypes,
+  ProofState,
 } from '@aries-framework/core';
 import { IndyVdrModule, IndyVdrAnonCredsRegistry, IndyVdrIndyDidResolver, IndyVdrIndyDidRegistrar } from '@aries-framework/indy-vdr';
 import { agentDependencies, HttpInboundTransport } from '@aries-framework/node';
@@ -91,6 +97,14 @@ export class BobAgent extends Agent {
             }),
           ],
         }),
+        proofs: new ProofsModule({
+          autoAcceptProofs: AutoAcceptProof.ContentApproved,
+          proofProtocols: [
+            new V2ProofProtocol({
+              proofFormats: [new AnonCredsProofFormatService()],
+            }),
+          ],
+        }),
         connections: new ConnectionsModule({ autoAcceptConnections: true }),
       },
       dependencies: agentDependencies,
@@ -109,13 +123,16 @@ export class BobAgent extends Agent {
         (this.modules.anoncreds as AnonCredsApi).createLinkSecret().then(() => {
           console.log("Holder's link secret created.");
         })
+      }).then(() => {
+        console.log("Bob agent listening for proof requests...");
+        this.setupProofListener();
       })
       .catch((e) => {
         console.error(
           `Something went wrong while setting up the Bob agent! Message: ${e}`,
         );
       });
-    
+
     console.log("Listening for incoming credentials...");
     this.events.on<CredentialStateChangedEvent>(CredentialEventTypes.CredentialStateChanged, async ({ payload }) => {
       switch (payload.credentialRecord.state) {
@@ -125,10 +142,26 @@ export class BobAgent extends Agent {
           await this.credentials.acceptOffer({ credentialRecordId: payload.credentialRecord.id })
         case CredentialState.Done:
           console.log(`Credential for credential id ${payload.credentialRecord.id} is accepted`)
-          // For demo purposes we exit the program here.
-          // process.exit(0)
+        // For demo purposes we exit the program here.
+        // process.exit(0)
       }
     });
+  }
+  setupProofListener = () => {
+    this.events.on<ProofStateChangedEvent>(
+      ProofEventTypes.ProofStateChanged,
+      async ({ payload }) => {
+        if (payload.proofRecord.state === ProofState.RequestReceived) {
+          console.log("Bob agent is sending presentation proof of their verifiable credentials...");
+          this.proofs.acceptRequest({
+            proofRecordId: payload.proofRecord.id,
+            proofFormats: this.proofs.selectCredentialsForRequest({
+              proofRecordId: payload.proofRecord.id
+            }).then((data) => data.proofFormats)
+          })
+        }
+      }
+    )
   }
   setupConnectionListener = (
     outOfBandRecord: OutOfBandRecord,

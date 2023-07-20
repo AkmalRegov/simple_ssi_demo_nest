@@ -2,6 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { AcmeAgent } from './class';
 import * as QRCode from 'qrcode';
 
+class requestProofDto {
+  connectionId: string;
+  proofFormat: {
+    [name: string]: {
+      name: string,
+      version: string,
+      requested_attributes: {
+        [name: string]: {
+          name: string,
+          restrictions: {
+            cred_def_id: string
+          }[]
+        }
+      },
+      requested_predicates?: {
+        [name: string]: {
+          name: string,
+          p_type: string,
+          p_value: number,
+          restrictions: {
+            cred_def_id: string
+          }[]
+        }
+      }
+    }
+  }
+}
+
 @Injectable()
 export class AgentService extends AcmeAgent {
   async getAgent() {
@@ -49,5 +77,12 @@ export class AgentService extends AcmeAgent {
     credentialDefinitionId: string,
   ) {
     return this.agentOfferCredential(connectionId, credentialDefinitionId);
+  }
+
+  async requestProofCredential(
+    connectionId: string,
+    proofFormat: requestProofDto["proofFormat"]
+  ) {
+    return this.agentRequestProof(connectionId, proofFormat);
   }
 }
