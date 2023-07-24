@@ -1,5 +1,7 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AgentService } from './agent.service';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Observable } from 'rxjs';
 
 class sendMessageDto {
   connectionId: string;
@@ -15,33 +17,33 @@ class requestProofDto {
   connectionId: string;
   proofFormat: {
     [name: string]: {
-      name: string,
-      version: string,
+      name: string;
+      version: string;
       requested_attributes: {
         [name: string]: {
-          name: string,
+          name: string;
           restrictions: {
-            cred_def_id: string
-          }[]
-        }
-      },
+            cred_def_id: string;
+          }[];
+        };
+      };
       requested_predicates?: {
         [name: string]: {
-          name: string,
-          p_type: string,
-          p_value: number,
+          name: string;
+          p_type: string;
+          p_value: number;
           restrictions: {
-            cred_def_id: string
-          }[]
-        }
-      }
-    }
-  }
+            cred_def_id: string;
+          }[];
+        };
+      };
+    };
+  };
 }
 
 @Controller('agent')
 export class AgentController {
-  constructor(private agentService: AgentService) { }
+  constructor(private agentService: AgentService) {}
 
   @Get()
   initAgent() {
@@ -74,7 +76,16 @@ export class AgentController {
 
   @Post('proofCredentials')
   proofCredential(@Body() dto: requestProofDto) {
-    console.log("Requesting proof of credential as a verifier...");
-    return this.agentService.agentRequestProof(dto.connectionId, dto.proofFormat);
+    console.log('Requesting proof of credential as a verifier...');
+    return this.agentService.agentRequestProof(
+      dto.connectionId,
+      dto.proofFormat,
+    );
+  }
+
+  @MessagePattern('schemas.create')
+  test(@Payload() sth: any) {
+    console.log('sth is: ', sth);
+    return this.agentService.schemaRegister(sth);
   }
 }

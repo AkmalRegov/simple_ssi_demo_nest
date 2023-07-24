@@ -60,20 +60,20 @@ import {
 import { AnonCredsRsModule } from '@aries-framework/anoncreds-rs';
 import { anoncreds } from '@hyperledger/anoncreds-nodejs';
 import { BCOVRIN_GENESIS_TRANSACTIONS } from 'src/utils';
+import { Schema } from 'src/schema/dto';
+import { httpErrorException_Return } from '../agent.service';
 
 interface checkRegisteredSchema_Return {
-  schema:
-  | GetSchemaReturn
-  | RegisterSchemaReturn
-  | string;
+  schema: GetSchemaReturn | RegisterSchemaReturn | string;
   type: 'GetSchemaReturn' | string;
   flag?: boolean;
 }
 
 export class AcmeAgent extends Agent {
   // What you input on bcovrin. Should be kept secure in production!
-  private unqualifiedIndyDid = `9VdxM6gJS8tyDzeHxKBd9e`; // will be returned after registering seed on bcovrin
-  private indyDid = `did:indy:bcovrin:test:${this.unqualifiedIndyDid}`;
+  private unqualifiedIndyDid1 = `9VdxM6gJS8tyDzeHxKBd9e`; // will be returned after registering seed on bcovrin
+  private unqualifiedIndyDid2 = `RoDtMA1rkAKVLcXv7iibAk`; // will be returned after registering seed on bcovrin
+  private indyDid = `did:indy:bcovrin:test:${this.unqualifiedIndyDid1}`;
   private schemaID = '';
 
   constructor() {
@@ -91,13 +91,13 @@ export class AcmeAgent extends Agent {
         admin_account: 'postgres',
         admin_password: 'postgres',
       },
-    }
+    };
     const config: InitConfig = {
       label: 'demo-agent-acme',
       walletConfig: {
         id: 'mainAcme',
         key: 'demoagentacme0000000000000000000',
-        storage: storageConfig
+        // storage: storageConfig,
       },
       endpoints: ['https://akmalregov.ngrok.dev'],
       logger: new ConsoleLogger(LogLevel.info),
@@ -147,7 +147,10 @@ export class AcmeAgent extends Agent {
           autoAcceptProofs: AutoAcceptProof.ContentApproved,
           proofProtocols: [
             new V2ProofProtocol({
-              proofFormats: [new AnonCredsProofFormatService(), new LegacyIndyProofFormatService()],
+              proofFormats: [
+                new AnonCredsProofFormatService(),
+                new LegacyIndyProofFormatService(),
+              ],
             }),
           ],
         }),
@@ -161,14 +164,20 @@ export class AcmeAgent extends Agent {
     this.initialize()
       .then(() => {
         console.log('Acme Agent initialized!');
-        console.log("Acme Agent wallet storage database is: ", this.agentConfig.walletConfig.storage);
+        console.log(
+          'Acme Agent wallet storage database is: ',
+          this.agentConfig.walletConfig.storage,
+        );
       })
       .then(this.initialDIDSetup)
       .then(async () => {
-        const schemaResult = await this.registerSchema();
-        this.registerCredentialDefinition(schemaResult);
-      }).then(async () => {
-        console.log("Acme agent listening for proof requests that they have sent...");
+        // const schemaResult = await this.registerSchema();
+        // this.registerCredentialDefinition(schemaResult);
+      })
+      .then(async () => {
+        console.log(
+          'Acme agent listening for proof requests that they have sent...',
+        );
         this.setupProofRequested();
       })
       .catch((e) => {
@@ -181,38 +190,38 @@ export class AcmeAgent extends Agent {
     connectionId: string,
     proofFormat: {
       [name: string]: {
-        name: string,
-        version: string,
+        name: string;
+        version: string;
         requested_attributes: {
           [name: string]: {
-            name: string,
+            name: string;
             restrictions: {
-              cred_def_id: string
-            }[]
-          }
-        },
+              cred_def_id: string;
+            }[];
+          };
+        };
         requested_predicates?: {
           [name: string]: {
-            name: string,
-            p_type: string,
-            p_value: number,
+            name: string;
+            p_type: string;
+            p_value: number;
             restrictions: {
-              cred_def_id: string
-            }[]
-          }
-        }
-      }
-    }
+              cred_def_id: string;
+            }[];
+          };
+        };
+      };
+    },
   ) => {
-    console.log("Requesting proof with the following formats:\n");
+    console.log('Requesting proof with the following formats:\n');
     console.dir(proofFormat, { depth: null, colors: true });
     const proofRequest = this.proofs.requestProof({
       connectionId: connectionId,
       protocolVersion: 'v2',
-      proofFormats: proofFormat
-    })
+      proofFormats: proofFormat,
+    });
     return await proofRequest;
-  }
+  };
   agentOfferCredential = async (
     connectionId: string,
     credentialDefinitionId: string,
@@ -250,15 +259,16 @@ export class AcmeAgent extends Agent {
     });
     return await credentialOffer;
   };
-  registerCredentialDefinition = async (args: checkRegisteredSchema_Return | string) => {
-    if (typeof args !== "object" && typeof args !== "string") return;
-    if (typeof args === "object" && args.type === "GetSchemaReturn") return;
+  registerCredentialDefinition = async (
+    args: checkRegisteredSchema_Return | string,
+  ) => {
+    if (typeof args !== 'object' && typeof args !== 'string') return;
+    if (typeof args === 'object' && args.type === 'GetSchemaReturn') return;
     const anonCredsApi = this.modules.anoncreds as AnonCredsApi;
     var schemaId: string;
-    if (typeof args !== "string") {
-      schemaId = (args.schema as RegisterSchemaReturn).schemaState
-        .schemaId;
-    } else if (typeof args !== "object") {
+    if (typeof args !== 'string') {
+      schemaId = (args.schema as RegisterSchemaReturn).schemaState.schemaId;
+    } else if (typeof args !== 'object') {
       schemaId = args;
     }
     const credentialDefinitionId =
@@ -291,7 +301,7 @@ export class AcmeAgent extends Agent {
       credentialDefinitionResult.credentialDefinitionState.state === 'failed'
     ) {
       throw new Error(
-        `Error creating credential definition: ${credentialDefinitionResult.credentialDefinitionState.reason}`,
+        `\nError creating credential definition: ${credentialDefinitionResult.credentialDefinitionState.reason}`,
       );
     }
     console.log('credential definition successfully registered!');
@@ -306,24 +316,29 @@ export class AcmeAgent extends Agent {
       `did:indy:bcovrin:test:9VdxM6gJS8tyDzeHxKBd9e/anoncreds/v0/SCHEMA/sth/1.0.0`,
     );
     if (checkSchemaExist) {
-      console.log('schema already exists!');
+      console.log('schema already exists! Schema is:\n');
+      console.dir(checkSchemaExist, {
+        depth: null,
+        colors: true,
+      });
       const credentialDefinitionId =
         await anonCredsApi.getCreatedCredentialDefinitions({
           schemaId: checkSchemaExist.schemaId,
         });
       if (credentialDefinitionId.length == 0) {
-        console.log("credential definition has not been registered on this machine!");
-        console.log("assigning schemaID string to AcmeAgent object...");
+        console.log(
+          'credential definition has not been registered on this machine!',
+        );
+        console.log('assigning schemaID string to AcmeAgent object...');
         this.schemaID = checkSchemaExist.schemaId;
-        console.log("assigned schemaID for AcmeAgent is: ", this.schemaID);
-      }
-      else {
-        console.log("credential definition has already exist!");
+        console.log('assigned schemaID for AcmeAgent is: ', this.schemaID);
+      } else {
+        console.log('credential definition has already exist!');
         console.log(
           'credentialDefinitionId is: \n',
           credentialDefinitionId[0].credentialDefinitionId,
-        )
-      };
+        );
+      }
       return {
         schema: checkSchemaExist,
         type: 'GetSchemaReturn',
@@ -331,6 +346,64 @@ export class AcmeAgent extends Agent {
       };
     }
     return { schema: 'none', type: 'none', flag: false };
+  };
+  checkSchemaExits_Nats = async (anonCredsApi: AnonCredsApi, sth: Schema) => {
+    var checkSchemaExist = await anonCredsApi.getSchema(sth.id);
+    console.log('checkSchemaExist is: ', checkSchemaExist);
+    if (
+      Object.keys(checkSchemaExist.resolutionMetadata).find(
+        (data) => data === 'error',
+      )
+    ) {
+      console.log(
+        'error in getting supposed created schema, message is: ',
+        checkSchemaExist.resolutionMetadata.error,
+      );
+      return {
+        objectOrError: sth,
+        cause: checkSchemaExist.resolutionMetadata.error,
+        description: checkSchemaExist.resolutionMetadata.message,
+      } as httpErrorException_Return;
+    }
+    return sth;
+  };
+  registerSchema_Nats = async (sth: Schema) => {
+    const anonCredsApi = this.modules.anoncreds as AnonCredsApi;
+    if (sth.id !== undefined && sth.id !== '') {
+      return this.checkSchemaExits_Nats(anonCredsApi, sth);
+    }
+    const schema: AnonCredsSchema = {
+      name: sth.name,
+      issuerId: this.indyDid,
+      attrNames: sth.attributes,
+      version: sth.version,
+    };
+    const schemaResult = await anonCredsApi.registerSchema({
+      schema,
+      options: {},
+    });
+    if (schemaResult.schemaState.state === 'failed') {
+      console.dir(schemaResult, { depth: null, colors: true });
+      return {
+        objectOrError: schema,
+        cause: `Error creating schema: ${schemaResult.schemaState.reason}`,
+        description: `A high probability that this schema has already been registered on the ledger!`,
+      } as httpErrorException_Return;
+    }
+
+    //NOT USABLE
+    //Only keeps track of schemas locally (and previously) registered on this machine instance
+    // var idk = await anonCredsApi.getCreatedSchemas({
+    //   schemaName: 'test8',
+    // });
+    // console.log('schema id is: ', idk[0].schemaId);
+    // console.dir(idk, { depth: null, colors: true });
+
+    console.log('Schema successfully registered!');
+    return {
+      ...schemaResult.schemaState.schema,
+      id: schemaResult.schemaState.schemaId,
+    };
   };
   registerSchema = async () => {
     const anonCredsApi = this.modules.anoncreds as AnonCredsApi;
@@ -347,12 +420,12 @@ export class AcmeAgent extends Agent {
       flag: false,
     };
     checkSchema_flag = await this.checkSchema_LiteralValue(anonCredsApi);
-    if (checkSchema_flag['flag'] && this.schemaID === "")
+    if (checkSchema_flag['flag'] && this.schemaID === '')
       return {
         schema: checkSchema_flag['schema'],
         type: checkSchema_flag['type'],
       };
-    else if (this.schemaID !== "") {
+    else if (this.schemaID !== '') {
       return this.schemaID;
     }
 
@@ -361,8 +434,10 @@ export class AcmeAgent extends Agent {
       options: {},
     });
     if (schemaResult.schemaState.state === 'failed') {
+      console.dir(schemaResult, { depth: null, colors: true });
+      console.log(schemaResult.schemaState.schemaId);
       throw new Error(
-        `Error creating schema: ${schemaResult.schemaState.reason} \
+        `\nError creating schema: ${schemaResult.schemaState.reason} \
         \n\nA high probability that this schema has already been registered on the ledger!
         `,
       );
@@ -371,8 +446,12 @@ export class AcmeAgent extends Agent {
     return { schema: schemaResult, type: 'RegisterSchemaReturn' };
   };
   initialDIDSetup = async () => {
-    const seed = TypedArrayEncoder.fromString(
+    const seed1 = TypedArrayEncoder.fromString(
       `akmalregov0000000000000000000000`,
+    );
+
+    const seed2 = TypedArrayEncoder.fromString(
+      `akmalregovtest000000000000000000`,
     );
 
     await this.dids.import({
@@ -380,7 +459,7 @@ export class AcmeAgent extends Agent {
       overwrite: true,
       privateKeys: [
         {
-          privateKey: seed,
+          privateKey: seed1,
           keyType: KeyType.Ed25519,
         },
       ],
@@ -393,7 +472,7 @@ export class AcmeAgent extends Agent {
     this.events.on<ConnectionStateChangedEvent>(
       ConnectionEventTypes.ConnectionStateChanged,
       ({ payload }) => {
-        console.log("connection payload id is: ", payload.connectionRecord.id);
+        console.log('connection payload id is: ', payload.connectionRecord.id);
         if (!outOfBandRecord) return;
         if (payload.connectionRecord.outOfBandId !== outOfBandRecord.id) return;
         console.log(payload.connectionRecord.state);
@@ -450,12 +529,14 @@ export class AcmeAgent extends Agent {
       ProofEventTypes.ProofStateChanged,
       async ({ payload }) => {
         if (payload.proofRecord.state === ProofState.PresentationReceived) {
-          console.log("Presentation has been received. Verifying it...");
+          console.log('Presentation has been received. Verifying it...');
         }
         if (payload.proofRecord.state === ProofState.Done) {
-          console.log("Presentation proof of the credential has been done! Success!");
+          console.log(
+            'Presentation proof of the credential has been done! Success!',
+          );
         }
-      }
-    )
-  }
+      },
+    );
+  };
 }

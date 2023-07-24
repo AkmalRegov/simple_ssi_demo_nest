@@ -1,33 +1,39 @@
-import { Injectable } from '@nestjs/common';
+import { HttpExceptionOptions, Injectable } from '@nestjs/common';
 import { AcmeAgent } from './class';
 import * as QRCode from 'qrcode';
+
+export interface httpErrorException_Return {
+  objectOrError?: string | object | any;
+  cause: string;
+  description: string;
+}
 
 class requestProofDto {
   connectionId: string;
   proofFormat: {
     [name: string]: {
-      name: string,
-      version: string,
+      name: string;
+      version: string;
       requested_attributes: {
         [name: string]: {
-          name: string,
+          name: string;
           restrictions: {
-            cred_def_id: string
-          }[]
-        }
-      },
+            cred_def_id: string;
+          }[];
+        };
+      };
       requested_predicates?: {
         [name: string]: {
-          name: string,
-          p_type: string,
-          p_value: number,
+          name: string;
+          p_type: string;
+          p_value: number;
           restrictions: {
-            cred_def_id: string
-          }[]
-        }
-      }
-    }
-  }
+            cred_def_id: string;
+          }[];
+        };
+      };
+    };
+  };
 }
 
 @Injectable()
@@ -81,8 +87,13 @@ export class AgentService extends AcmeAgent {
 
   async requestProofCredential(
     connectionId: string,
-    proofFormat: requestProofDto["proofFormat"]
+    proofFormat: requestProofDto['proofFormat'],
   ) {
     return this.agentRequestProof(connectionId, proofFormat);
+  }
+
+  async schemaRegister(sth: any) {
+    var schema = await this.registerSchema_Nats(sth);
+    return schema;
   }
 }

@@ -1,4 +1,10 @@
-import { AnonCredsModule, LegacyIndyCredentialFormatService, AnonCredsCredentialFormatService, AnonCredsApi, AnonCredsProofFormatService } from '@aries-framework/anoncreds';
+import {
+  AnonCredsModule,
+  LegacyIndyCredentialFormatService,
+  AnonCredsCredentialFormatService,
+  AnonCredsApi,
+  AnonCredsProofFormatService,
+} from '@aries-framework/anoncreds';
 import { AnonCredsRsModule } from '@aries-framework/anoncreds-rs';
 import { AskarModule } from '@aries-framework/askar';
 import {
@@ -27,7 +33,12 @@ import {
   ProofEventTypes,
   ProofState,
 } from '@aries-framework/core';
-import { IndyVdrModule, IndyVdrAnonCredsRegistry, IndyVdrIndyDidResolver, IndyVdrIndyDidRegistrar } from '@aries-framework/indy-vdr';
+import {
+  IndyVdrModule,
+  IndyVdrAnonCredsRegistry,
+  IndyVdrIndyDidResolver,
+  IndyVdrIndyDidRegistrar,
+} from '@aries-framework/indy-vdr';
 import { agentDependencies, HttpInboundTransport } from '@aries-framework/node';
 import { anoncreds } from '@hyperledger/anoncreds-nodejs';
 import { ariesAskar } from '@hyperledger/aries-askar-nodejs';
@@ -50,7 +61,7 @@ export class BobAgent extends Agent {
         admin_account: 'postgres',
         admin_password: 'postgres',
       },
-    }
+    };
 
     // Simple agent configuration. This sets some basic fields like the wallet
     // configuration and the label. It also sets the mediator invitation url,
@@ -60,7 +71,7 @@ export class BobAgent extends Agent {
       walletConfig: {
         id: 'mainBob',
         key: 'demoagentbob00000000000000000000',
-        storage: storageConfig,
+        // storage: storageConfig,
       },
       endpoints: ['http://localhost:9000'],
     };
@@ -93,7 +104,10 @@ export class BobAgent extends Agent {
         credentials: new CredentialsModule({
           credentialProtocols: [
             new V2CredentialProtocol({
-              credentialFormats: [new LegacyIndyCredentialFormatService(), new AnonCredsCredentialFormatService()],
+              credentialFormats: [
+                new LegacyIndyCredentialFormatService(),
+                new AnonCredsCredentialFormatService(),
+              ],
             }),
           ],
         }),
@@ -118,13 +132,17 @@ export class BobAgent extends Agent {
     this.initialize()
       .then(() => {
         console.log('Bob Agent initialized!');
-        console.log("Bob Agent wallet storage database is: ", this.agentConfig.walletConfig.storage);
-        console.log("Creating link secret for holder...");
+        console.log(
+          'Bob Agent wallet storage database is: ',
+          this.agentConfig.walletConfig.storage,
+        );
+        console.log('Creating link secret for holder...');
         (this.modules.anoncreds as AnonCredsApi).createLinkSecret().then(() => {
           console.log("Holder's link secret created.");
-        })
-      }).then(() => {
-        console.log("Bob agent listening for proof requests...");
+        });
+      })
+      .then(() => {
+        console.log('Bob agent listening for proof requests...');
         this.setupProofListener();
       })
       .catch((e) => {
@@ -133,36 +151,47 @@ export class BobAgent extends Agent {
         );
       });
 
-    console.log("Listening for incoming credentials...");
-    this.events.on<CredentialStateChangedEvent>(CredentialEventTypes.CredentialStateChanged, async ({ payload }) => {
-      switch (payload.credentialRecord.state) {
-        case CredentialState.OfferReceived:
-          console.log('received a credential')
-          // custom logic here
-          await this.credentials.acceptOffer({ credentialRecordId: payload.credentialRecord.id })
-        case CredentialState.Done:
-          console.log(`Credential for credential id ${payload.credentialRecord.id} is accepted`)
-        // For demo purposes we exit the program here.
-        // process.exit(0)
-      }
-    });
+    console.log('Listening for incoming credentials...');
+    this.events.on<CredentialStateChangedEvent>(
+      CredentialEventTypes.CredentialStateChanged,
+      async ({ payload }) => {
+        switch (payload.credentialRecord.state) {
+          case CredentialState.OfferReceived:
+            console.log('received a credential');
+            // custom logic here
+            await this.credentials.acceptOffer({
+              credentialRecordId: payload.credentialRecord.id,
+            });
+          case CredentialState.Done:
+            console.log(
+              `Credential for credential id ${payload.credentialRecord.id} is accepted`,
+            );
+          // For demo purposes we exit the program here.
+          // process.exit(0)
+        }
+      },
+    );
   }
   setupProofListener = () => {
     this.events.on<ProofStateChangedEvent>(
       ProofEventTypes.ProofStateChanged,
       async ({ payload }) => {
         if (payload.proofRecord.state === ProofState.RequestReceived) {
-          console.log("Bob agent is sending presentation proof of their verifiable credentials...");
+          console.log(
+            'Bob agent is sending presentation proof of their verifiable credentials...',
+          );
           this.proofs.acceptRequest({
             proofRecordId: payload.proofRecord.id,
-            proofFormats: this.proofs.selectCredentialsForRequest({
-              proofRecordId: payload.proofRecord.id
-            }).then((data) => data.proofFormats)
-          })
+            proofFormats: this.proofs
+              .selectCredentialsForRequest({
+                proofRecordId: payload.proofRecord.id,
+              })
+              .then((data) => data.proofFormats),
+          });
         }
-      }
-    )
-  }
+      },
+    );
+  };
   setupConnectionListener = (
     outOfBandRecord: OutOfBandRecord,
     cb?: (...args: any) => void,
