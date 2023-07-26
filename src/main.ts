@@ -7,7 +7,10 @@ async function bootstrap() {
   const natsMS = await app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.NATS,
     options: {
+      //local usage
       servers: ['nats://localhost:4222'],
+      //docker usage on Windows machine
+      // servers: ['nats://host.docker.internal:4222'],
       timeout: 600000,
     },
   });

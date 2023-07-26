@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AgentService } from './agent.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { Observable } from 'rxjs';
 
 class sendMessageDto {
   connectionId: string;
@@ -43,7 +42,7 @@ class requestProofDto {
 
 @Controller('agent')
 export class AgentController {
-  constructor(private agentService: AgentService) {}
+  constructor(private agentService: AgentService) { }
 
   @Get()
   initAgent() {

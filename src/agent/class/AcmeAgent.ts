@@ -347,7 +347,7 @@ export class AcmeAgent extends Agent {
     }
     return { schema: 'none', type: 'none', flag: false };
   };
-  checkSchemaExits_Nats = async (anonCredsApi: AnonCredsApi, sth: Schema) => {
+  checkSchemaExists_Nats = async (anonCredsApi: AnonCredsApi, sth: Schema) => {
     var checkSchemaExist = await anonCredsApi.getSchema(sth.id);
     console.log('checkSchemaExist is: ', checkSchemaExist);
     if (
@@ -365,13 +365,18 @@ export class AcmeAgent extends Agent {
         description: checkSchemaExist.resolutionMetadata.message,
       } as httpErrorException_Return;
     }
-    return sth;
+    const { attributes: attrNames } = sth;
+    return {
+      ...sth,
+      attrNames
+    };
   };
   registerSchema_Nats = async (sth: Schema) => {
     const anonCredsApi = this.modules.anoncreds as AnonCredsApi;
-    if (sth.id !== undefined && sth.id !== '') {
-      return this.checkSchemaExits_Nats(anonCredsApi, sth);
-    }
+    // console.log("sth.id is: ", sth.id);
+    // if (sth.id !== undefined && sth.id !== '') {
+    //   return this.checkSchemaExists_Nats(anonCredsApi, sth);
+    // }
     const schema: AnonCredsSchema = {
       name: sth.name,
       issuerId: this.indyDid,
@@ -384,10 +389,14 @@ export class AcmeAgent extends Agent {
     });
     if (schemaResult.schemaState.state === 'failed') {
       console.dir(schemaResult, { depth: null, colors: true });
+      var descString = "See the error cause message";
+      if (schemaResult.schemaState.reason.includes("forbidden")) {
+        descString = `A high probability that this schema has already been registered on the ledger!`
+      }
       return {
         objectOrError: schema,
         cause: `Error creating schema: ${schemaResult.schemaState.reason}`,
-        description: `A high probability that this schema has already been registered on the ledger!`,
+        description: descString,
       } as httpErrorException_Return;
     }
 
@@ -402,7 +411,7 @@ export class AcmeAgent extends Agent {
     console.log('Schema successfully registered!');
     return {
       ...schemaResult.schemaState.schema,
-      id: schemaResult.schemaState.schemaId,
+      schemaId: schemaResult.schemaState.schemaId,
     };
   };
   registerSchema = async () => {
